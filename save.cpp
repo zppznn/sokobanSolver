@@ -26,10 +26,10 @@ typedef struct board{
     pair<int,int> prev_box;                      // box A being pushed in previous board resulting in current board
     pair<int,int> cur_box;                       // box A's new location in current board
     board * prev_board;                          // pointer to previous board
-    bool operator==(const board* b) const{
-        if (b_boxes->size() != b->b_boxes->size()) return false;
+    bool operator==(const board& b) const{
+        if (b_boxes->size() != b.b_boxes->size()) return false;
         for(int i = 0; i<b_boxes->size();i++){
-            if( (*b_boxes)[i] != (*b->b_boxes)[i] ) return false;
+            if( (*b_boxes)[i] != (*b.b_boxes)[i] ) return false;
         }
         return true;
     }
@@ -45,11 +45,11 @@ struct pair_hash{
 };
 
 struct board_hash{
-    size_t operator()(const board *b) const{
+    size_t operator()(const board &b) const{
         ll x_value, y_value,hash ;
-        for(int i = 0; i< b->b_boxes->size();i++){
-            x_value += (*b->b_boxes)[i].first * i;
-            y_value += (*b->b_boxes)[i].second * i;
+        for(int i = 0; i< b.b_boxes->size();i++){
+            x_value += (*b.b_boxes)[i].first * i;
+            y_value += (*b.b_boxes)[i].second * i;
         }
         hash = x_value ^ y_value;
         return size_t(hash);
@@ -58,8 +58,8 @@ struct board_hash{
 
 
 struct pq_compare{
-    bool operator()(const board *b1, const board *b2){
-        return b1->h > b2->h;
+    bool operator()(const board &b1, const board &b2){
+        return b1.h > b2.h;
     }
 
 };
@@ -238,21 +238,20 @@ void MapBox2Location(){
 }
 
 // check if this is the final state
-bool SolutionFound(const board * b){
-    unordered_set<pair<int,int>, pair_hash> s((*b->b_boxes).begin(), (*b->b_boxes).end());
+bool SolutionFound(const board & b){
+    unordered_set<pair<int,int>, pair_hash> s((*b.b_boxes).begin(), (*b.b_boxes).end());
     for(auto loc : init_locations) if(!s.count(loc)) return false;
     return true;
 }
 
 
-void CleanBoard(board *b){
-    delete b->b_boxes;
-    delete b;
+void CleanBoard(board &b){
+    delete b.b_boxes;
 }
 
-void CleanEverything(unordered_set<board*,board_hash> &s, priority_queue<board*,vector<board*>,pq_compare> &pq){
+void CleanEverything(unordered_set<board, board_hash> &s, priority_queue<board,vector<board>,pq_compare> &pq){
     for( int i = pq.size();i>0; i--){
-        board *b = pq.top();pq.pop();
+        board b = pq.top();pq.pop();
         if(s.count(b)){ s.erase(b); }
         CleanBoard(b);
     }
@@ -275,16 +274,16 @@ int CalculateNewH(pair<int,int> old_box, pair<int,int> new_box, int box_id , int
     else return old_h+1;
 }
 // use bfs to find all next available moves. And calculate hueristics.
-vector<board*> FindNextBoards(board *b){
+vector<board> FindNextBoards(board &b){
     vector<pair<int,int>> directions = {{1,0},{-1,0},{0,1},{0,-1}};
-    vector<board*> res;
-    unordered_set<pair<int,int>, pair_hash> box_set ((*b->b_boxes).begin() ,(*b->b_boxes).end() );
+    vector<board> res;
+    unordered_set<pair<int,int>, pair_hash> box_set ((*b.b_boxes).begin() ,(*b.b_boxes).end() );
     unordered_set<pair<int,int>, pair_hash> visited;
     queue<pair<int,int>> q;            // represent current player reachable locations.
-    q.push({b->x,b->y});
+    q.push({b.x,b.y});
     while(!q.empty()){
         pair<int,int> cur = q.front();q.pop();
-        if(visited.count(cur)) continue;
+
         visited.insert(cur);
         int new_x, new_y;
         for(auto dir : directions){
@@ -298,27 +297,23 @@ vector<board*> FindNextBoards(board *b){
             else if(box_set.count({new_x,new_y})){
                 if( !box_set.count({new_x + dir.first, new_y + dir.second}) && !walls.count({new_x + dir.first, new_y + dir.second})){  
                     // push this box to new location and create new board
-                    board *new_board = new board;
-                    vector<pair<int,int>> *temp_boxes = new vector<pair<int,int>> (*b->b_boxes);
+                    board new_board;
+                    vector<pair<int,int>> *temp_boxes = new vector<pair<int,int>> (*b.b_boxes);
                     pair<int,int> old_box_loc = {new_x,new_y};
                     pair<int,int> new_box_loc = {new_x + dir.first, new_y + dir.second};
                     int box_id;
-                    for(int i = 0 ;i < (*b->b_boxes).size(); i++){
-                        if((*(b->b_boxes))[i] == old_box_loc){
+                    for(int i = 0 ;i < (*b.b_boxes).size(); i++){
+                        if((*(b.b_boxes))[i] == old_box_loc){
                             box_id = i;
                             (*temp_boxes)[i] = new_box_loc;
                             break;
                         }
                     }
-                    new_board->b_boxes = temp_boxes;
-                    new_board->x = new_x;
-                    new_board->y = new_y;
-                    new_board->h = CalculateNewH(old_box_loc,new_box_loc,box_id, b->h);
-                    new_board->steps = b->steps + 1;
-                    new_board->prev_board = b;
-                    new_board->prev_box = old_box_loc;
-                    new_board->cur_box = new_box_loc;
-                    cout << old_box_loc.first+1 <<" " << old_box_loc.second+1  <<" -> "<< new_box_loc.first+1  <<" "<<new_box_loc.second+1 <<endl;
+                    new_board.b_boxes = temp_boxes;
+                    new_board.x = new_x;
+                    new_board.y = new_y;
+                    new_board.h = CalculateNewH(old_box_loc,new_box_loc,box_id, b.h);
+                    new_board.steps = b.steps + 1;
                     res.push_back(new_board);
                 }
             }
@@ -329,54 +324,91 @@ vector<board*> FindNextBoards(board *b){
 
 }
 
-// coordinates should + 1 for human reading
-void PrintSolutionPath(board *final_state){
-    vector<pair<pair<int,int> , pair<int,int>>> path;
-    while(final_state->prev_board){
-        pair<pair<int,int> , pair<int,int>> transition = {final_state->prev_box, final_state->cur_box};
-        path.push_back(transition);
-        final_state  = final_state->prev_board;
+void printallboard(priority_queue<board,vector<board>,pq_compare> &pq){
+
+    vector<vector<char>> e,v = {
+        {'*','*','*','*','*'},
+        {'*',' ',' ',' ','*'},
+        {'*',' ',' ',' ','*'},
+        {'*',' ',' ',' ','*'},
+        {'*','*','*','*','*'}
+    };
+    e = v;
+    for(auto i : (init_boxes) ){
+        v[i.first][i.second] = 'B'; 
+        cout << i.first <<"->" <<i.second<<endl;
     }
-    reverse(path.begin(),path.end());
-    for(auto state : path){
-        cout << "push box {" << state.first.first+1  <<"," <<state.first.second+1<<"} to {" << state.second.first+1<<"," <<state.second.second+1<<"}\n" ;
+    for(int i =board_width -1; i>=0 ; i--){
+        for(int j = 0;j< board_height;j++){
+            cout <<v[i][j]<<" ";
+        }
+        cout <<endl;
     }
+    v = e;
+    cout <<"----------------------\n";
+    for(int i = pq.size();i>0;i--){
+        board b = pq.top(); pq.pop();
+        for(auto i : (*b.b_boxes) ){
+            v[i.first][i.second] = 'B'; 
+        }
+        for(int i =board_width -1; i>=0 ; i--){
+            for(int j = 0;j< board_height;j++){
+                cout <<v[i][j]<<" ";
+            }
+            cout <<endl;
+        }
+        cout <<"----------------------\n";
+        v = e;
+    }
+
 }
 
+void printboard(board &b){
+    vector<vector<char>> e,v = {
+        {'*','*','*','*','*'},
+        {'*',' ',' ',' ','*'},
+        {'*',' ',' ',' ','*'},
+        {'*',' ',' ',' ','*'},
+        {'*','*','*','*','*'}
+    };
+    e = v;
+    for(auto i : (*b.b_boxes) ){
+            v[i.first][i.second] = 'B'; 
+        }
+    for(int i =board_width -1; i>=0 ; i--){
+        for(int j = 0;j< board_height;j++){
+            cout <<v[i][j]<<" ";
+        }
+        cout <<endl;
+    }
+}
 // The main logic. A* with heuristic
 void run(){
     // initialization
-    board *init_board = new board;
+    board init_board;
     vector<pair<int,int>> * temp_boxes = new vector<pair<int,int>> (init_boxes);
     //unordered_map<int,int> * temp_mapping = new unordered_map<int,int> (mapping);
-    init_board->b_boxes = temp_boxes;
+    init_board.b_boxes = temp_boxes;
     // init_board.b_mapping = &;
-    init_board->x = init_player_x;
-    init_board->y = init_player_y;
-    init_board->h = init_heuristic;
-    init_board->steps = 0;
-    init_board->prev_board = NULL;
-    init_board->prev_box = {-1,-1};
-    init_board->cur_box = {-1,-1};
-    priority_queue<board*,vector<board*>,pq_compare> pq;
+    init_board.x = init_player_x;
+    init_board.y = init_player_y;
+    init_board.h = init_heuristic;
+    init_board.steps = 0;
+    priority_queue<board,vector<board>,pq_compare> pq;
     pq.push(init_board);
-    unordered_set<board*,board_hash> visited;
-
+    unordered_set<board, board_hash> visited;
+    int steps = 0;
 
     while(!pq.empty()){
-        // cout << pq.size()<<" size of pq\n";
-        // sleep(3);
-        board *curr_board = pq.top(); pq.pop();
-        if(visited.count(curr_board )) continue;
+        board curr_board = pq.top(); pq.pop();
         if( SolutionFound(curr_board)){
-            cout <<"Solution found with number of pushes "<<curr_board->steps<<endl;
-            PrintSolutionPath(curr_board);
+            cout <<"Solution found with number of pushes "<<curr_board.steps<<endl;
             CleanEverything(visited, pq);
             return ;
         }
         visited.insert(curr_board);
-        vector<board*> ret = FindNextBoards(curr_board);     
-                                                            
+        vector<board> ret = FindNextBoards(curr_board);     // debug
+                                                            // add deadstate detection
         for( auto new_board : ret){
             if ( !visited.count(new_board)){
                 pq.push(new_board);

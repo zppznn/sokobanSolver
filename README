@@ -1,1 +1,9 @@
-ITs blank now
+# sokoban solver
+
+## Team Chicken Breast
+
+Compile & run
+    1. make      (or g++ sokoban.cpp -o sokoban -std=c++11)
+    2. 
+
+
