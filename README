@@ -1,9 +1,25 @@
-# sokoban solver
+It is a sokoban solver program.
+Main Algorithm is A* with heuristic value. 
 
-## Team Chicken Breast
+Input Format:
+5 3
+12 1 1 1 2 1 3 2 1 2 3 3 1 3 3 4 1 4 3 5 1 5 2 5 3 
+1 3 2
+1 4 2
+2 2
 
-Compile & run
-    1. make      (or g++ sokoban.cpp -o sokoban -std=c++11)
-    2. 
+The 1st line tells the size of input board is 5*3.
+The 2nd line tells there are 12 walls and their corresponding coordinates in the board.
+The 3rd line tells there is 1 box and its corresponding coordinate.
+The 4th line tells there is 1 storage location and its corresponding coordinate.
+The 5th line tells initial coordinate of the player.
 
 
+
+Compile:
+  make
+ 
+ Run:
+  ./a.out
+  
+  
