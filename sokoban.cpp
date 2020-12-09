@@ -244,19 +244,40 @@ bool SolutionFound(const board * b){
     return true;
 }
 
+// iteratively find index in V if b exist in v
+int ifExistIndex(vector<board*> &v, board*b){
+    for(int idx = 0 ; idx<v.size();idx++){
+        int cnt = 0;
+        for(int i = 0 ;i< b->b_boxes->size();i++){
+            if( (*v[idx]->b_boxes)[i] == (*b->b_boxes)[i] ) cnt++;
+        }
+        if(cnt == b->b_boxes->size()) return idx;
+    }
+    return -1;
+}
+
+// iteratively find b in vector
+bool ifExist(vector<board*> & v, board* b){
+    int ret = ifExistIndex(v,b);
+    return (ret == -1 ? false:true);
+}
+
 
 void CleanBoard(board *b){
     delete b->b_boxes;
     delete b;
 }
 
-void CleanEverything(unordered_set<board*,board_hash> &s, priority_queue<board*,vector<board*>,pq_compare> &pq){
+void CleanEverything(vector<board*> &v, priority_queue<board*,vector<board*>,pq_compare> &pq){
     for( int i = pq.size();i>0; i--){
         board *b = pq.top();pq.pop();
-        if(s.count(b)){ s.erase(b); }
+        int ret = ifExistIndex(v,b);
+        if(ret != -1 ){
+            v.erase(v.begin()+ret);
+        }
         CleanBoard(b);
     }
-    for(auto i : s) CleanBoard(i);
+    for(auto i : v) CleanBoard(i);
 }
 
 inline int ManDistance(const pair<int,int> &b1, const pair<int,int> &b2){
@@ -318,7 +339,7 @@ vector<board*> FindNextBoards(board *b){
                     new_board->prev_board = b;
                     new_board->prev_box = old_box_loc;
                     new_board->cur_box = new_box_loc;
-                    cout << old_box_loc.first+1 <<" " << old_box_loc.second+1  <<" -> "<< new_box_loc.first+1  <<" "<<new_box_loc.second+1 <<endl;
+                    //cout << old_box_loc.first+1 <<" " << old_box_loc.second+1  <<" -> "<< new_box_loc.first+1  <<" "<<new_box_loc.second+1 <<endl;
                     res.push_back(new_board);
                 }
             }
@@ -338,10 +359,14 @@ void PrintSolutionPath(board *final_state){
         final_state  = final_state->prev_board;
     }
     reverse(path.begin(),path.end());
+    cout <<"Steps:\n";
+    int step = 1;
     for(auto state : path){
-        cout << "push box {" << state.first.first+1  <<"," <<state.first.second+1<<"} to {" << state.second.first+1<<"," <<state.second.second+1<<"}\n" ;
+        cout << step<< ". push box {" << state.first.first+1  <<"," <<state.first.second+1<<"} to {" << state.second.first+1<<"," <<state.second.second+1<<"}\n" ;
+        step++;
     }
 }
+
 
 // The main logic. A* with heuristic
 void run(){
@@ -360,29 +385,28 @@ void run(){
     init_board->cur_box = {-1,-1};
     priority_queue<board*,vector<board*>,pq_compare> pq;
     pq.push(init_board);
-    unordered_set<board*,board_hash> visited;
-
+    //unordered_set<board*,board_hash> visited;
+    vector<board*> visited;
 
     while(!pq.empty()){
-        // cout << pq.size()<<" size of pq\n";
-        // sleep(3);
+
         board *curr_board = pq.top(); pq.pop();
-        if(visited.count(curr_board )) continue;
+        
         if( SolutionFound(curr_board)){
-            cout <<"Solution found with number of pushes "<<curr_board->steps<<endl;
+            std::cout <<"Solution found with number of pushes "<<curr_board->steps<<endl;
             PrintSolutionPath(curr_board);
             CleanEverything(visited, pq);
             return ;
         }
-        visited.insert(curr_board);
+       
+        visited.push_back(curr_board);
         vector<board*> ret = FindNextBoards(curr_board);     
-                                                            
-        for( auto new_board : ret){
-            if ( !visited.count(new_board)){
+                                            
+        for( auto new_board : ret){   
+            if( !ifExist(visited, new_board)){
                 pq.push(new_board);
             }
         }
-
 
     }
 

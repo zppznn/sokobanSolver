@@ -364,10 +364,10 @@ void run(){
 
 
     while(!pq.empty()){
-        // cout << pq.size()<<" size of pq\n";
-        // sleep(3);
+
         board *curr_board = pq.top(); pq.pop();
-        if(visited.count(curr_board )) continue;
+        
+        cout << curr_board->prev_box.first+1 <<"." <<curr_board->prev_box.second+1 <<" moved to " <<curr_board->cur_box.first+1 <<"."<<curr_board->cur_box.second+1<<endl;
         if( SolutionFound(curr_board)){
             cout <<"Solution found with number of pushes "<<curr_board->steps<<endl;
             PrintSolutionPath(curr_board);
@@ -376,13 +376,17 @@ void run(){
         }
         visited.insert(curr_board);
         vector<board*> ret = FindNextBoards(curr_board);     
-                                                            
+                                            
         for( auto new_board : ret){
             if ( !visited.count(new_board)){
                 pq.push(new_board);
             }
+            else{
+                cout <<"repeat found\n";
+            }
         }
-
+        //cout << pq.size()<<" size of pq\n";
+         sleep(3);
 
     }
 
