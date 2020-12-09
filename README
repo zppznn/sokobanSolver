@@ -20,6 +20,7 @@ Compile:
   make
  
  Run:
-  ./a.out
+  ./a.out input1
+  ./a.out input2
   
   
