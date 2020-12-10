@@ -208,7 +208,7 @@ void _MapBox2LocationHelper2(vector<vector<int>> &m){
 
 // for each box. use bfs to calculate its reachable location distance. Form a 2-d adjcency matrix
 // then select the best mapping from 2-d matrix and form a hashmap for future fast lookup
-void MapBox2Location(){
+bool MapBox2Location(){
     //calculate reachable distance from box_id to every other location. 
     vector<vector<int>> adj_matrix (box_num, vector<int> (location_num,-1)); // adjcent matrix : distance of box id to location id
     for(int i = 0 ; i < box_num; i++){
@@ -231,13 +231,13 @@ void MapBox2Location(){
         }
         if(!has_solution ){
             cout <<"There is a storage box that has no solution \n";
-            return;
+            return false;
         }
     }
     
     // pick a best solution for box->storage mapping
     _MapBox2LocationHelper2(adj_matrix);
-
+    return true;
 }
 
 // check if this is the final state
@@ -405,7 +405,7 @@ int main(int argc, char *argv[]){
     }
     
     // map each box to its best location, and produce a smallest heuristic
-    MapBox2Location();
+    if ( !MapBox2Location()) return 0;
     cout << "init_heuristic "<< init_heuristic<<endl;
     run();
     return 0;
