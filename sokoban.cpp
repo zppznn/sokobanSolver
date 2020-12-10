@@ -11,7 +11,6 @@
 #include <limits.h>
 #include <unistd.h>
 
-#define ll uint64_t
 
 using namespace std;
 
@@ -26,13 +25,7 @@ typedef struct board{
     pair<int,int> prev_box;                      // box A being pushed in previous board resulting in current board
     pair<int,int> cur_box;                       // box A's new location in current board
     board * prev_board;                          // pointer to previous board
-    bool operator==(const board* b) const{
-        if (b_boxes->size() != b->b_boxes->size()) return false;
-        for(int i = 0; i<b_boxes->size();i++){
-            if( (*b_boxes)[i] != (*b->b_boxes)[i] ) return false;
-        }
-        return true;
-    }
+
 } board;
 
 struct pair_hash{
@@ -46,15 +39,25 @@ struct pair_hash{
 
 struct board_hash{
     size_t operator()(const board *b) const{
-        ll x_value, y_value,hash ;
+        size_t x_value = 0, y_value = 0 ;
         for(int i = 0; i< b->b_boxes->size();i++){
             x_value += (*b->b_boxes)[i].first * i;
             y_value += (*b->b_boxes)[i].second * i;
         }
-        hash = x_value ^ y_value;
-        return size_t(hash);
+        return size_t(x_value ^ y_value);
     }
 };
+
+struct board_equal{
+    size_t operator()(const board *a, const board *b) const{
+        if (a->b_boxes->size() != b->b_boxes->size()) return false;
+        for(int i = 0; i<a->b_boxes->size();i++){
+            if( (*a->b_boxes)[i] != (*b->b_boxes)[i] ) return false;
+        }
+        return true;
+    }
+};
+
 
 
 struct pq_compare{
@@ -244,23 +247,6 @@ bool SolutionFound(const board * b){
     return true;
 }
 
-// iteratively find index in V if b exist in v
-int ifExistIndex(vector<board*> &v, board*b){
-    for(int idx = 0 ; idx<v.size();idx++){
-        int cnt = 0;
-        for(int i = 0 ;i< b->b_boxes->size();i++){
-            if( (*v[idx]->b_boxes)[i] == (*b->b_boxes)[i] ) cnt++;
-        }
-        if(cnt == b->b_boxes->size()) return idx;
-    }
-    return -1;
-}
-
-// iteratively find b in vector
-bool ifExist(vector<board*> & v, board* b){
-    int ret = ifExistIndex(v,b);
-    return (ret == -1 ? false:true);
-}
 
 
 void CleanBoard(board *b){
@@ -268,16 +254,13 @@ void CleanBoard(board *b){
     delete b;
 }
 
-void CleanEverything(vector<board*> &v, priority_queue<board*,vector<board*>,pq_compare> &pq){
+void CleanEverything(unordered_set<board*,board_hash,board_equal> &s, priority_queue<board*,vector<board*>,pq_compare> &pq){
     for( int i = pq.size();i>0; i--){
         board *b = pq.top();pq.pop();
-        int ret = ifExistIndex(v,b);
-        if(ret != -1 ){
-            v.erase(v.begin()+ret);
-        }
+        if(s.count(b)){ s.erase(b); }
         CleanBoard(b);
     }
-    for(auto i : v) CleanBoard(i);
+    for(auto i : s) CleanBoard(i);
 }
 
 inline int ManDistance(const pair<int,int> &b1, const pair<int,int> &b2){
@@ -385,8 +368,8 @@ void run(){
     init_board->cur_box = {-1,-1};
     priority_queue<board*,vector<board*>,pq_compare> pq;
     pq.push(init_board);
-    //unordered_set<board*,board_hash> visited;
-    vector<board*> visited;
+    unordered_set<board*,board_hash,board_equal> visited;
+  
 
     while(!pq.empty()){
 
@@ -399,15 +382,14 @@ void run(){
             return ;
         }
        
-        visited.push_back(curr_board);
+        visited.insert(curr_board);
         vector<board*> ret = FindNextBoards(curr_board);     
                                             
         for( auto new_board : ret){   
-            if( !ifExist(visited, new_board)){
+            if ( !visited.count(new_board)){
                 pq.push(new_board);
             }
         }
-
     }
 
     cout <<"Solution not found\n";
