@@ -165,7 +165,7 @@ void _MapBox2LocationHelper1(vector<vector<int>> &m, int box_id){
 void _dfs(vector<vector<int>> &m, unordered_map<int,int> & path, unordered_set<int> &filled, int location_id, int cur_sum, int &min_sum){
     if(location_id >= location_num){
     
-        if(cur_sum < min_sum){
+        if(cur_sum < min_sum && cur_sum >=0){
             mapping = path;
             init_heuristic = cur_sum;
             min_sum = cur_sum;

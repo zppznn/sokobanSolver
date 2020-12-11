@@ -11,7 +11,6 @@
 #include <limits.h>
 #include <unistd.h>
 
-#define ll uint64_t
 
 using namespace std;
 
@@ -26,13 +25,7 @@ typedef struct board{
     pair<int,int> prev_box;                      // box A being pushed in previous board resulting in current board
     pair<int,int> cur_box;                       // box A's new location in current board
     board * prev_board;                          // pointer to previous board
-    bool operator==(const board* b) const{
-        if (b_boxes->size() != b->b_boxes->size()) return false;
-        for(int i = 0; i<b_boxes->size();i++){
-            if( (*b_boxes)[i] != (*b->b_boxes)[i] ) return false;
-        }
-        return true;
-    }
+
 } board;
 
 struct pair_hash{
@@ -46,15 +39,25 @@ struct pair_hash{
 
 struct board_hash{
     size_t operator()(const board *b) const{
-        ll x_value, y_value,hash ;
+        size_t x_value = 0, y_value = 0 ;
         for(int i = 0; i< b->b_boxes->size();i++){
             x_value += (*b->b_boxes)[i].first * i;
             y_value += (*b->b_boxes)[i].second * i;
         }
-        hash = x_value ^ y_value;
-        return size_t(hash);
+        return size_t(x_value ^ y_value);
     }
 };
+
+struct board_equal{
+    size_t operator()(const board *a, const board *b) const{
+        if (a->b_boxes->size() != b->b_boxes->size()) return false;
+        for(int i = 0; i<a->b_boxes->size();i++){
+            if( (*a->b_boxes)[i] != (*b->b_boxes)[i] ) return false;
+        }
+        return true;
+    }
+};
+
 
 
 struct pq_compare{
@@ -205,7 +208,7 @@ void _MapBox2LocationHelper2(vector<vector<int>> &m){
 
 // for each box. use bfs to calculate its reachable location distance. Form a 2-d adjcency matrix
 // then select the best mapping from 2-d matrix and form a hashmap for future fast lookup
-void MapBox2Location(){
+bool MapBox2Location(){
     //calculate reachable distance from box_id to every other location. 
     vector<vector<int>> adj_matrix (box_num, vector<int> (location_num,-1)); // adjcent matrix : distance of box id to location id
     for(int i = 0 ; i < box_num; i++){
@@ -228,13 +231,13 @@ void MapBox2Location(){
         }
         if(!has_solution ){
             cout <<"There is a storage box that has no solution \n";
-            return;
+            return false;
         }
     }
     
     // pick a best solution for box->storage mapping
     _MapBox2LocationHelper2(adj_matrix);
-
+    return true;
 }
 
 // check if this is the final state
@@ -245,12 +248,13 @@ bool SolutionFound(const board * b){
 }
 
 
+
 void CleanBoard(board *b){
     delete b->b_boxes;
     delete b;
 }
 
-void CleanEverything(unordered_set<board*,board_hash> &s, priority_queue<board*,vector<board*>,pq_compare> &pq){
+void CleanEverything(unordered_set<board*,board_hash,board_equal> &s, priority_queue<board*,vector<board*>,pq_compare> &pq){
     for( int i = pq.size();i>0; i--){
         board *b = pq.top();pq.pop();
         if(s.count(b)){ s.erase(b); }
@@ -318,7 +322,7 @@ vector<board*> FindNextBoards(board *b){
                     new_board->prev_board = b;
                     new_board->prev_box = old_box_loc;
                     new_board->cur_box = new_box_loc;
-                    cout << old_box_loc.first+1 <<" " << old_box_loc.second+1  <<" -> "<< new_box_loc.first+1  <<" "<<new_box_loc.second+1 <<endl;
+                    //cout << old_box_loc.first+1 <<" " << old_box_loc.second+1  <<" -> "<< new_box_loc.first+1  <<" "<<new_box_loc.second+1 <<endl;
                     res.push_back(new_board);
                 }
             }
@@ -338,10 +342,14 @@ void PrintSolutionPath(board *final_state){
         final_state  = final_state->prev_board;
     }
     reverse(path.begin(),path.end());
+    cout <<"Steps:\n";
+    int step = 1;
     for(auto state : path){
-        cout << "push box {" << state.first.first+1  <<"," <<state.first.second+1<<"} to {" << state.second.first+1<<"," <<state.second.second+1<<"}\n" ;
+        cout << step<< ". push box {" << state.first.first+1  <<"," <<state.first.second+1<<"} to {" << state.second.first+1<<"," <<state.second.second+1<<"}\n" ;
+        step++;
     }
 }
+
 
 // The main logic. A* with heuristic
 void run(){
@@ -360,34 +368,28 @@ void run(){
     init_board->cur_box = {-1,-1};
     priority_queue<board*,vector<board*>,pq_compare> pq;
     pq.push(init_board);
-    unordered_set<board*,board_hash> visited;
-
+    unordered_set<board*,board_hash,board_equal> visited;
+  
 
     while(!pq.empty()){
 
         board *curr_board = pq.top(); pq.pop();
         
-        cout << curr_board->prev_box.first+1 <<"." <<curr_board->prev_box.second+1 <<" moved to " <<curr_board->cur_box.first+1 <<"."<<curr_board->cur_box.second+1<<endl;
         if( SolutionFound(curr_board)){
-            cout <<"Solution found with number of pushes "<<curr_board->steps<<endl;
+            std::cout <<"Solution found with number of pushes "<<curr_board->steps<<endl;
             PrintSolutionPath(curr_board);
             CleanEverything(visited, pq);
             return ;
         }
+       
         visited.insert(curr_board);
         vector<board*> ret = FindNextBoards(curr_board);     
                                             
-        for( auto new_board : ret){
+        for( auto new_board : ret){   
             if ( !visited.count(new_board)){
                 pq.push(new_board);
             }
-            else{
-                cout <<"repeat found\n";
-            }
         }
-        //cout << pq.size()<<" size of pq\n";
-         sleep(3);
-
     }
 
     cout <<"Solution not found\n";
@@ -403,7 +405,7 @@ int main(int argc, char *argv[]){
     }
     
     // map each box to its best location, and produce a smallest heuristic
-    MapBox2Location();
+    if ( !MapBox2Location()) return 0;
     cout << "init_heuristic "<< init_heuristic<<endl;
     run();
     return 0;
