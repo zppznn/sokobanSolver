@@ -175,7 +175,7 @@ void _dfs(vector<vector<int>> &m, unordered_map<int,int> & path, unordered_set<i
     // for each location id, find its best box id. Beucase we could have more boxes than locations
     for(int j = 0; j < box_num;j++){
         for(int i = 0 ;i<m[j].size();i++){
-            if(i == location_id && !filled.count(j)){
+            if(i == location_id && !filled.count(j) && m[j][i] >= 0 ){
                 path[j] = i;
                 filled.insert(j);
                 _dfs(m, path, filled, location_id + 1, cur_sum + m[j][i], min_sum);
@@ -190,13 +190,14 @@ void _dfs(vector<vector<int>> &m, unordered_map<int,int> & path, unordered_set<i
 // pick a local best solution for box->storage mapping
 // use dfs to get best workable solution
 // mapping is a global variable that will not change after this function
-void _MapBox2LocationHelper2(vector<vector<int>> &m){
+void _MapBox2LocationHelper2(vector<vector<int>> &m, bool &succ){
     unordered_set<int> filled_location;
     unordered_map<int,int> map_path;
     int min_sum = INT_MAX;
     _dfs(m, map_path, filled_location,0,0,min_sum);
     if(mapping.empty()){
         cout <<"Mapping creation failed\n";
+        succ = false;
     }
 
     //printing
@@ -236,8 +237,10 @@ bool MapBox2Location(){
     }
     
     // pick a best solution for box->storage mapping
-    _MapBox2LocationHelper2(adj_matrix);
-    return true;
+    bool succ = true;
+    _MapBox2LocationHelper2(adj_matrix, succ);
+    return succ;
+    
 }
 
 // check if this is the final state

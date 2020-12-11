@@ -8,6 +8,7 @@
 P = player
 B = box
 S = Storage location
+
 * * * * * * * *
 *             *
 *   B B   P   *
